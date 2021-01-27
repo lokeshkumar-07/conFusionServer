@@ -8,11 +8,16 @@ const commentSchema = new Schema({
         type: String,
         required: true,
         min: 1,
-        max: 5
+        max: 5,
+        required: true
     },
-    author:{
+    comment : {
         type: String,
         required: true
+    },
+    author:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 },{
     timestamps: true
