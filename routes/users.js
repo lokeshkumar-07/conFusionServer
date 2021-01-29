@@ -3,6 +3,7 @@ var bodyParser = require('body-parser');
 var passport = require('passport');
 
 var authenticate = require('../authenticate');
+var cors = require('./cors');
 
 
 var User = require('../models/user'); 
@@ -12,11 +13,21 @@ var router = express.Router();
 router.use(bodyParser.json());
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', cors.corsWithOptions, authenticate.verifyUser, authenticate.adminUser, (req, res, next) =>  {
+  User.find({})
+  .then((users) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type','application/json');
+    res.json(users);
+  })
+  .catch((err) => {
+    res.statusCode = 500;
+    res.setHeader('Content-Type','application/json');
+    res.json({err: err});
+  })
 });
 
-router.post('/signup', (req,res,next) => {
+router.post('/signup',cors.corsWithOptions, (req,res,next) => {
   User.register(new User({username: req.body.username}), 
     req.body.password, (err, user) => {
     if(err) {
@@ -49,12 +60,12 @@ router.post('/signup', (req,res,next) => {
   });
 });
 
-router.post('/login', passport.authenticate('local'), (req,res,next) => {
+router.post('/login', cors.corsWithOptions, passport.authenticate('local'), (req,res,next) => {
 
   var token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;
   res.setHeader('Content-Type','application/json');
-  res.json({succes: true, token: token, staus: 'You are Logged In Successful' })
+  res.json({succes: true, token: token, staus: 'You are Logged In Successfully' })
 })
 
 
@@ -65,9 +76,18 @@ router.get('/logout', (req,res,next) => {
     res.redirect('/');
   }
   else{
-    var err = new Erro('you are not Logged In!');
+    var err = new Error('you are not Logged In!');
     err.status = 403;
     return next(err);
   }
 });
+
+router.get('/facebook/token', passport.authenticate('facebook-token'), (req, res) => {
+  if(req.user) {
+    var token = authenticate.getToken({_id: req.user._id});
+    res.statusCode = 200;
+    res.setHeader('Content-Type','application/json');
+    res.json({succes: true, token: token, staus: 'You are Logged In Successfully' })
+  }
+})
 module.exports = router;
